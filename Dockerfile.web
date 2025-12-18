@@ -31,5 +31,6 @@ RUN SHARP_IGNORE_GLOBAL_LIBVIPS=true pnpm --filter @immich/sdk --filter immich-w
 RUN ls -la web/build  # Debug: Zeigt, ob der Build-Ordner da ist
 
 # Final: Leichtes Nginx-Image
-FROM nginx:alpine  # Noch kleiner als normales nginx
+# nginx:alpine: Noch kleiner als normales nginx
+FROM nginx:alpine
 COPY --from=web-prod /usr/src/app/web/build /usr/share/nginx/html
