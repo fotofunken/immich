@@ -19,7 +19,9 @@ export const load = (async ({ fetch }) => {
 
     const authenticated = await loadUser();
     if (authenticated) {
-      redirect(302, AppRoute.PHOTOS);
+      // Custom: Redirect to albums instead of photos - change to true to revert to photos
+      const redirectToAlbums = true;
+      redirect(302, redirectToAlbums ? AppRoute.ALBUMS : AppRoute.PHOTOS);
     }
 
     if (serverConfigManager.value.isInitialized) {

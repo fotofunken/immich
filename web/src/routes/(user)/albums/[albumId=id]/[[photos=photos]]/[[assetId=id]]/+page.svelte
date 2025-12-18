@@ -357,19 +357,8 @@
   );
 
   const handleShare = async () => {
-    const result = await modalManager.show(AlbumShareModal, { album });
-
-    switch (result?.action) {
-      case 'sharedLink': {
-        await handleShareLink();
-        return;
-      }
-
-      case 'sharedUsers': {
-        await handleAddUsers(result.data);
-        return;
-      }
-    }
+    // Custom: Directly open shared link creation instead of share modal - change to original modal logic if needed
+    await handleShareLink();
   };
 
   const onSharedLinkCreate = async () => {

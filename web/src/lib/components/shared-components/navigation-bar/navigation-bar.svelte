@@ -76,7 +76,8 @@
         }}
         class="sidebar:hidden"
       />
-      <a data-sveltekit-preload-data="hover" href={AppRoute.PHOTOS}>
+      <!-- Custom: Logo links to albums instead of photos - change to false to revert to photos -->
+      <a data-sveltekit-preload-data="hover" href={true ? AppRoute.ALBUMS : AppRoute.PHOTOS}>
         <Logo variant={mobileDevice.isFullSidebar ? 'inline' : 'icon'} class="max-md:h-12" />
       </a>
     </div>

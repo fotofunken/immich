@@ -207,22 +207,12 @@
       }
 
       case 'share': {
-        const result = await modalManager.show(AlbumShareModal, { album: selectedAlbum });
-        switch (result?.action) {
-          case 'sharedUsers': {
-            await handleAddUsers(selectedAlbum, result.data);
-            break;
-          }
-
-          case 'sharedLink': {
-            const success = await modalManager.show(SharedLinkCreateModal, { albumId: selectedAlbum.id });
-            if (success) {
-              selectedAlbum.shared = true;
-              selectedAlbum.hasSharedLink = true;
-              updateAlbumInfo(selectedAlbum);
-            }
-            break;
-          }
+        // Custom: Directly open shared link creation instead of share modal - change to original modal logic if needed
+        const success = await modalManager.show(SharedLinkCreateModal, { albumId: selectedAlbum.id });
+        if (success) {
+          selectedAlbum.shared = true;
+          selectedAlbum.hasSharedLink = true;
+          updateAlbumInfo(selectedAlbum);
         }
         break;
       }

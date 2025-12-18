@@ -110,9 +110,10 @@
   {:else}
     <ControlAppBar showBackButton={false}>
       {#snippet leading()}
-        <a data-sveltekit-preload-data="hover" class="ms-4" href="/">
+        <!-- Custom: Logo in shared album view should do nothing - change to href="/" to revert -->
+        <div class="ms-4">
           <Logo variant={mobileDevice.maxMd ? 'icon' : 'inline'} class="min-w-10" />
-        </a>
+        </div>
       {/snippet}
 
       {#snippet trailing()}

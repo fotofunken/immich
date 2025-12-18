@@ -47,12 +47,33 @@
 </script>
 
 <Sidebar ariaLabel={$t('primary')}>
-  <SideBarLink
-    title={$t('photos')}
-    href={resolve('/(user)/photos')}
-    bind:isSelected={isPhotosSelected}
-    icon={isPhotosSelected ? mdiImageMultiple : mdiImageMultipleOutline}
-  ></SideBarLink>
+  <!-- Custom: Reordered menu items for better UX - merge-friendly -->
+  <!-- Custom: Hide dropdown arrow for albums - change {#if false} to {#if true} to show arrow again -->
+  {#if false}
+    <SideBarLink
+      title={$t('albums')}
+      href={resolve('/(user)/albums')}
+      icon={mdiImageAlbum}
+      flippedLogo
+      bind:dropdownOpen={$recentAlbumsDropdown}
+    >
+      {#snippet dropDownContent()}
+        <span in:fly={{ y: -20 }} class="hidden md:block">
+          <RecentAlbums />
+        </span>
+      {/snippet}
+    </SideBarLink>
+  {:else}
+    <SideBarLink
+      title={$t('albums')}
+      href={resolve('/(user)/albums')}
+      icon={mdiImageAlbum}
+    ></SideBarLink>
+  {/if}
+
+  {#if $preferences.sharedLinks.enabled && $preferences.sharedLinks.sidebarWeb}
+    <SideBarLink title={$t('shared_links')} href={resolve('/(user)/shared-links')} icon={mdiLink} />
+  {/if}
 
   {#if featureFlagsManager.value.search}
     <SideBarLink title={$t('explore')} href={resolve('/(user)/explore')} icon={mdiMagnify} />
@@ -76,75 +97,70 @@
     />
   {/if}
 
-  {#if $preferences.sharedLinks.enabled && $preferences.sharedLinks.sidebarWeb}
-    <SideBarLink title={$t('shared_links')} href={resolve('/(user)/shared-links')} icon={mdiLink} />
-  {/if}
-
-  <SideBarLink
-    title={$t('sharing')}
-    href={resolve('/(user)/sharing')}
-    icon={isSharingSelected ? mdiAccountMultiple : mdiAccountMultipleOutline}
-    bind:isSelected={isSharingSelected}
-  ></SideBarLink>
-
-  <p class="text-xs p-6 dark:text-immich-dark-fg uppercase">{$t('library')}</p>
-
-  <SideBarLink
-    title={$t('favorites')}
-    href={resolve('/(user)/favorites')}
-    icon={isFavoritesSelected ? mdiHeart : mdiHeartOutline}
-    bind:isSelected={isFavoritesSelected}
-  ></SideBarLink>
-
-  <SideBarLink
-    title={$t('albums')}
-    href={resolve('/(user)/albums')}
-    icon={mdiImageAlbum}
-    flippedLogo
-    bind:dropdownOpen={$recentAlbumsDropdown}
-  >
-    {#snippet dropDownContent()}
-      <span in:fly={{ y: -20 }} class="hidden md:block">
-        <RecentAlbums />
-      </span>
-    {/snippet}
-  </SideBarLink>
-
-  {#if $preferences.tags.enabled && $preferences.tags.sidebarWeb}
-    <SideBarLink title={$t('tags')} href={resolve('/(user)/tags')} icon={mdiTagMultipleOutline} flippedLogo />
-  {/if}
-
-  {#if $preferences.folders.enabled && $preferences.folders.sidebarWeb}
-    <SideBarLink title={$t('folders')} href={resolve('/(user)/folders')} icon={mdiFolderOutline} flippedLogo />
-  {/if}
-
-  <SideBarLink
-    title={$t('utilities')}
-    href={resolve('/(user)/utilities')}
-    bind:isSelected={isUtilitiesSelected}
-    icon={isUtilitiesSelected ? mdiToolbox : mdiToolboxOutline}
-  ></SideBarLink>
-
-  <SideBarLink
-    title={$t('archive')}
-    href={resolve('/(user)/archive')}
-    bind:isSelected={isArchiveSelected}
-    icon={isArchiveSelected ? mdiArchiveArrowDown : mdiArchiveArrowDownOutline}
-  ></SideBarLink>
-
-  <SideBarLink
-    title={$t('locked_folder')}
-    href={resolve('/(user)/locked')}
-    bind:isSelected={isLockedFolderSelected}
-    icon={isLockedFolderSelected ? mdiLock : mdiLockOutline}
-  ></SideBarLink>
-
   {#if featureFlagsManager.value.trash}
     <SideBarLink
       title={$t('trash')}
       href={resolve('/(user)/trash')}
       bind:isSelected={isTrashSelected}
       icon={isTrashSelected ? mdiTrashCan : mdiTrashCanOutline}
+    ></SideBarLink>
+  {/if}
+
+  <!-- Custom: Additional menu items hidden - change {#if false} to {#if true} to show -->
+  {#if false}
+    <!-- Custom: Photos link disabled - change {#if false} to {#if true} to enable -->
+    {#if false}
+      <SideBarLink
+        title={$t('photos')}
+        href={resolve('/(user)/photos')}
+        bind:isSelected={isPhotosSelected}
+        icon={isPhotosSelected ? mdiImageMultiple : mdiImageMultipleOutline}
+      ></SideBarLink>
+    {/if}
+
+    <SideBarLink
+      title={$t('sharing')}
+      href={resolve('/(user)/sharing')}
+      icon={isSharingSelected ? mdiAccountMultiple : mdiAccountMultipleOutline}
+      bind:isSelected={isSharingSelected}
+    ></SideBarLink>
+
+    <p class="text-xs p-6 dark:text-immich-dark-fg uppercase">{$t('library')}</p>
+
+    <SideBarLink
+      title={$t('favorites')}
+      href={resolve('/(user)/favorites')}
+      icon={isFavoritesSelected ? mdiHeart : mdiHeartOutline}
+      bind:isSelected={isFavoritesSelected}
+    ></SideBarLink>
+
+    {#if $preferences.tags.enabled && $preferences.tags.sidebarWeb}
+      <SideBarLink title={$t('tags')} href={resolve('/(user)/tags')} icon={mdiTagMultipleOutline} flippedLogo />
+    {/if}
+
+    {#if $preferences.folders.enabled && $preferences.folders.sidebarWeb}
+      <SideBarLink title={$t('folders')} href={resolve('/(user)/folders')} icon={mdiFolderOutline} flippedLogo />
+    {/if}
+
+    <SideBarLink
+      title={$t('utilities')}
+      href={resolve('/(user)/utilities')}
+      bind:isSelected={isUtilitiesSelected}
+      icon={isUtilitiesSelected ? mdiToolbox : mdiToolboxOutline}
+    ></SideBarLink>
+
+    <SideBarLink
+      title={$t('archive')}
+      href={resolve('/(user)/archive')}
+      bind:isSelected={isArchiveSelected}
+      icon={isArchiveSelected ? mdiArchiveArrowDown : mdiArchiveArrowDownOutline}
+    ></SideBarLink>
+
+    <SideBarLink
+      title={$t('locked_folder')}
+      href={resolve('/(user)/locked')}
+      bind:isSelected={isLockedFolderSelected}
+      icon={isLockedFolderSelected ? mdiLock : mdiLockOutline}
     ></SideBarLink>
   {/if}
 

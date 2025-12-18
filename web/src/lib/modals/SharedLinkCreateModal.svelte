@@ -16,7 +16,8 @@
 
   let description = $state('');
   let allowDownload = $state(true);
-  let allowUpload = $state(false);
+  // Custom: Allow upload by default for shared links - change to false to revert
+  let allowUpload = $state(true);
   let showMetadata = $state(true);
   let password = $state('');
   let slug = $state('');

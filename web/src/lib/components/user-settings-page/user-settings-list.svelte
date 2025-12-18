@@ -72,9 +72,12 @@
     <UserUsageStatistic />
   </SettingAccordion>
 
-  <SettingAccordion icon={mdiApi} key="api-keys" title={$t('api_keys')} subtitle={$t('manage_your_api_keys')}>
-    <UserAPIKeyList bind:keys />
-  </SettingAccordion>
+  <!-- Custom: Show API keys only for admins - remove {#if $user.isAdmin} to show for all -->
+  {#if $user.isAdmin}
+    <SettingAccordion icon={mdiApi} key="api-keys" title={$t('api_keys')} subtitle={$t('manage_your_api_keys')}>
+      <UserAPIKeyList bind:keys />
+    </SettingAccordion>
+  {/if}
 
   <SettingAccordion
     icon={mdiDevices}
@@ -133,32 +136,41 @@
     <ChangePasswordSettings />
   </SettingAccordion>
 
-  <SettingAccordion
-    icon={mdiAccountGroupOutline}
-    key="partner-sharing"
-    title={$t('partner_sharing')}
-    subtitle={$t('manage_sharing_with_partners')}
-  >
-    <PartnerSettings user={$user} />
-  </SettingAccordion>
+  <!-- Custom: Show partner sharing only for admins - remove {#if $user.isAdmin} to show for all -->
+  {#if $user.isAdmin}
+    <SettingAccordion
+      icon={mdiAccountGroupOutline}
+      key="partner-sharing"
+      title={$t('partner_sharing')}
+      subtitle={$t('manage_sharing_with_partners')}
+    >
+      <PartnerSettings user={$user} />
+    </SettingAccordion>
+  {/if}
 
-  <SettingAccordion
-    icon={mdiLockSmart}
-    key="user-pin-code-settings"
-    title={$t('user_pin_code_settings')}
-    subtitle={$t('user_pin_code_settings_description')}
-    autoScrollTo={true}
-  >
-    <ChangePinCodeSettings />
-  </SettingAccordion>
+  <!-- Custom: Show PIN code settings only for admins - remove {#if $user.isAdmin} to show for all -->
+  {#if $user.isAdmin}
+    <SettingAccordion
+      icon={mdiLockSmart}
+      key="user-pin-code-settings"
+      title={$t('user_pin_code_settings')}
+      subtitle={$t('user_pin_code_settings_description')}
+      autoScrollTo={true}
+    >
+      <ChangePinCodeSettings />
+    </SettingAccordion>
+  {/if}
 
-  <SettingAccordion
-    icon={mdiKeyOutline}
-    key="user-purchase-settings"
-    title={$t('user_purchase_settings')}
-    subtitle={$t('user_purchase_settings_description')}
-    autoScrollTo={true}
-  >
-    <UserPurchaseSettings />
-  </SettingAccordion>
+  <!-- Custom: Show purchase settings only for admins - remove {#if $user.isAdmin} to show for all -->
+  {#if $user.isAdmin}
+    <SettingAccordion
+      icon={mdiKeyOutline}
+      key="user-purchase-settings"
+      title={$t('user_purchase_settings')}
+      subtitle={$t('user_purchase_settings_description')}
+      autoScrollTo={true}
+    >
+      <UserPurchaseSettings />
+    </SettingAccordion>
+  {/if}
 </SettingAccordionState>
