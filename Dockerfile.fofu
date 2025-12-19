@@ -3,7 +3,7 @@ FROM ghcr.io/immich-app/immich-server:release AS base
 
 # Stage 2: Web-Build mit deinem Fotofunken-Branding
 # Nutze einen aktuellen, existierenden Datumstag statt :latest
-FROM ghcr.io/immich-app/base-server-dev:202512191104 AS web-build
+FROM ghcr.io/immich-app/base-server-dev:commit-3eb2dd152f64abde13a7517fae154787dddc43e3 AS web-build
 
 WORKDIR /usr/src/app
 
