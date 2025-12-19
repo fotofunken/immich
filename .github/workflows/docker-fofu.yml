@@ -3,6 +3,7 @@ name: Build and Push Fotofunken Immich Server Image
 on:
   push:
     branches: [ main ]
+    tags: [ 'v*' ]
   release:
     types: [ published ]
   workflow_dispatch:
