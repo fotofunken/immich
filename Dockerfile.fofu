@@ -1,0 +1,31 @@
+# Stage 1: Offizielles released immich-server als Base (enthält Backend, EntryPoint etc.)
+FROM ghcr.io/immich-app/immich-server:release AS base
+
+# Stage 2: Web-Build mit Fotofunken-Branding
+# Nutzt das aktuelle dev-base Image für PNPM & Build-Tools
+FROM ghcr.io/immich-app/base-server-dev:latest AS web-build
+
+WORKDIR /usr/src/app
+
+# Nur das Nötige kopieren für den Web-Build (effizient & cached)
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .pnpmfile.cjs mise.toml* ./
+COPY web/ ./web/
+COPY i18n/ ./i18n/
+COPY open-api/ ./open-api/
+
+# Install & Build (Branding aus web/ wird automatisch verwendet)
+RUN npm install --global corepack@latest && \
+    corepack enable pnpm && \
+    SHARP_IGNORE_GLOBAL_LIBVIPS=true pnpm --filter @immich/sdk --filter immich-web --frozen-lockfile --force install && \
+    pnpm --filter @immich/sdk --filter immich-web build
+
+# Debug: Zeige, dass der Build-Ordner existiert
+RUN ls -la web/build
+
+# Final Stage: Base-Server + gebrandetes Web
+FROM base
+
+# Überschreibe das originale Web mit gebrandeten Build
+COPY --from=web-build /usr/src/app/web/build /usr/src/app/www
+
+# (Kein EXPOSE oder ENTRYPOINT nötig – wird vom base geerbt)
