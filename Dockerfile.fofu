@@ -1,46 +1,42 @@
-# Stage 1: Offizielles released immich-server als Base
+# Stage 1: Offizielles released immich-server als Base (Finales Image)
 FROM ghcr.io/immich-app/immich-server:release AS base
 
-# Stage 2: Web-Build
+# Stage 2: Web-Build mit deinem Fotofunken-Branding
+# Aktuellstes bekanntes Base-Tag (Stand 9. Jan 2026 – prüfe ggf. auf https://github.com/immich-app/immich/pkgs/container/base-server-dev)
 FROM ghcr.io/immich-app/base-server-dev:202601061105 AS web-build
 
 WORKDIR /usr/src/app
 
+# Kopiere Workspace + Dependencies (Caching optimiert)
 COPY pnpm-lock.yaml pnpm-workspace.yaml .pnpmfile.cjs ./
 COPY package.json ./
 COPY web/package.json web/
 
+# Installiere corepack + pnpm
 RUN npm install --global corepack@latest && \
-    corepack enable pnpm && \
-    SHARP_IGNORE_GLOBAL_LIBVIPS=true pnpm install --frozen-lockfile --force --loglevel info
+    corepack enable pnpm
 
-RUN pnpm -r ls
+# Vollständige Installation
+RUN SHARP_IGNORE_GLOBAL_LIBVIPS=true pnpm install --frozen-lockfile --force --loglevel info
 
+# Kopiere den Rest (deine UI-Änderungen)
 COPY web/ ./web/
 COPY i18n/ ./i18n/
 COPY open-api/ ./open-api/
 
-RUN echo "=== DEBUG: web-Ordner nach COPY ===" && ls -la web/ && ls -la web/src
-
-# Build: Explizit vite build aufrufen
-RUN echo "=== DEBUG: Build startet ===" && \
-    cd web && \
-    pnpm vite build --loglevel verbose 2>&1 || \
-    pnpm build --loglevel verbose 2>&1 || \
-    echo "=== BUILD FAILED – check vite.config.ts or package.json scripts ===" && \
+# Build: Explizit in web/ wechseln (aus deinem lokalen Test erfolgreich)
+RUN cd web && \
+    pnpm build && \
     cd ..
 
-# Debug: Output-Suche
-RUN echo "=== DEBUG: Build-Output Suche ===" && \
-    find web -type d -name "build" -print || echo "Kein build-Ordner" && \
-    ls -la web/build || echo "web/build missing" && \
-    echo "Build-Inhalt:" && ls -la web/build 2>/dev/null || echo "Kein Inhalt"
+# Debug: Build-Output prüfen (wichtig!)
+RUN ls -la web/build || echo "web/build fehlt oder leer!"
 
-# Final Stage
+# Final Stage: Base-Server + dein gebrandetes Web
 FROM base
 
-# Kopiere den Output (angenommen web/build – Logs zeigen es)
+# Kopiere den korrekten Pfad (aus deinem lokalen Test: web/build)
 COPY --from=web-build /usr/src/app/web/build /usr/src/app/www
 
-# Debug final
-RUN ls -la /usr/src/app/www || echo "www leer!"
+# Finaler Debug im Server-Image
+RUN ls -la /usr/src/app/www || echo "www-Ordner leer oder fehlt!"
