@@ -1,50 +1,44 @@
 # Stage 1: Offizielles released immich-server als Base
 FROM ghcr.io/immich-app/immich-server:release AS base
 
-# Stage 2: Web-Build mit deinem Fotofunken-Branding
+# Stage 2: Web-Build
 FROM ghcr.io/immich-app/base-server-dev:202601061105 AS web-build
 
 WORKDIR /usr/src/app
 
-# Kopiere Workspace + Dependencies
 COPY pnpm-lock.yaml pnpm-workspace.yaml .pnpmfile.cjs ./
 COPY package.json ./
 COPY web/package.json web/
 
 RUN npm install --global corepack@latest && \
     corepack enable pnpm && \
-    SHARP_IGNORE_GLOBAL_LIBVIPS=true pnpm install --frozen-lockfile --force --loglevel info
-
-RUN pnpm -r ls
+    SHARP_IGNORE_GLOBAL_LIBVIPS=true pnpm install --frozen-lockfile --force
 
 COPY web/ ./web/
 COPY i18n/ ./i18n/
 COPY open-api/ ./open-api/
 
-RUN echo "=== DEBUG: web-Ordner nach COPY ===" && ls -la web/ && ls -la web/src
-
-# Build: Ohne --loglevel (Vite kennt es nicht)
-RUN echo "=== DEBUG: Build startet ===" && \
-    cd web && \
-    pnpm build 2>&1 || \
-    echo "=== BUILD FAILED in web/ ===" && \
+# Build: Identisch zu deinem erfolgreichen lokalen Test
+RUN cd web && \
+    pnpm build && \
     cd ..
 
-# Debug: Build-Output prüfen
+# Debug: Prüfe Output (wichtig!)
 RUN echo "=== DEBUG: Build-Output (web/build) ===" && \
     ls -la web/build || echo "web/build fehlt oder leer!" && \
     if [ -d "web/build" ]; then \
       echo "Build-Inhalt:" && ls -la web/build && \
       echo "assets-Ordner:" && ls -la web/build/assets || echo "Kein assets!"; \
     else \
-      echo "KEIN BUILD ORDNER – pnpm build hat nichts produziert!"; \
+      echo "KEIN BUILD ORDNER!"; \
     fi
 
 # Final Stage
 FROM base
 
-# Kopiere den korrekten Pfad (aus deinem lokalen Test: web/build)
+# Kopiere den Pfad aus deinem lokalen Test
 COPY --from=web-build /usr/src/app/web/build /usr/src/app/www
 
 # Finaler Debug
-RUN ls -la /usr/src/app/www || echo "www-Ordner leer oder fehlt!"
+RUN echo "=== DEBUG: Finales /usr/src/app/www ===" && \
+    ls -la /usr/src/app/www || echo "www-Ordner leer!"
