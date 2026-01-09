@@ -1,77 +1,47 @@
-# Stage 1: Offizielles released immich-server als Base (Finales Image)
+# Stage 1: Offizielles released immich-server als Base
 FROM ghcr.io/immich-app/immich-server:release AS base
 
 # Stage 2: Web-Build mit deinem Fotofunken-Branding
-# Nutze ein aktuelles Base-Image (hier dein altes Datum – kannst später auf :latest wechseln)
-FROM ghcr.io/immich-app/base-server-dev:202512161105 AS web-build
-
-# Debug 1: Welchen WORKDIR hat das Base-Image wirklich? (vor unserem Setzen)
-RUN echo "=== DEBUG: Default WORKDIR des Base-Images ===" && \
-    pwd && \
-    echo "Aktueller Ordner-Inhalt:" && ls -la
+FROM ghcr.io/immich-app/base-server-dev:latest AS web-build   # ← :latest statt altem Datum!
 
 WORKDIR /usr/src/app
 
-# Debug 2: Nach Setzen des WORKDIR – passt es?
-RUN echo "=== DEBUG: WORKDIR nach Setzen ===" && \
-    pwd && \
-    echo "Ordner-Inhalt nach WORKDIR:" && ls -la
-
-# Kopiere Workspace-Dateien zuerst (für besseres Layer-Caching)
-COPY pnpm-lock.yaml pnpm-workspace.yaml .pnpmfile.cjs mise.toml* ./
+# Kopiere Workspace zuerst (für Caching)
+COPY pnpm-lock.yaml pnpm-workspace.yaml .pnpmfile.cjs ./
 COPY package.json ./
+COPY web/package.json web/
 
-# Debug 3: Workspace-Dateien erfolgreich kopiert?
-RUN echo "=== DEBUG: Workspace-Dateien kopiert ===" && \
-    ls -la pnpm* .pnpmfile.cjs package.json mise.toml* || echo "Workspace-Dateien fehlen!"
+# Install
+RUN npm install --global corepack@latest && \
+    corepack enable pnpm && \
+    SHARP_IGNORE_GLOBAL_LIBVIPS=true pnpm install --frozen-lockfile --force --loglevel info
 
-# Kopiere den web-Ordner (hier kommen deine UI-Änderungen rein)
+# Debug: Welche Packages gibt es?
+RUN pnpm -r ls
+
+# Kopiere den Rest
 COPY web/ ./web/
-
-# Debug 4: Ist der web-Ordner mit deinen Änderungen da?
-RUN echo "=== DEBUG: web-Ordner nach COPY ===" && \
-    ls -la web/ || echo "web-Ordner FEHLT oder ist leer!" && \
-    if [ -d "web/src" ]; then echo "web/src existiert – Inhalt:" && ls -la web/src; else echo "KEIN web/src gefunden!"; fi
-
-# Kopiere weitere notwendige Ordner
 COPY i18n/ ./i18n/
 COPY open-api/ ./open-api/
 
-# Installiere corepack + pnpm
-RUN npm install --global corepack@latest && \
-    corepack enable pnpm
+# Build mit verbose + Fallback-Filter
+RUN pnpm --filter immich-web build --loglevel verbose || \
+    pnpm build --filter "./web" --loglevel verbose || \
+    echo "BUILD FAILED - no matching filter!"
 
-# Debug 5: Ist pnpm installiert?
-RUN echo "=== DEBUG: pnpm Version ===" && pnpm --version || echo "pnpm nicht installiert!"
+# Debug: Wo ist der Build-Output?
+RUN echo "=== Possible Build-Outputs ===" && \
+    ls -la web/build || echo "web/build missing" && \
+    ls -la web/dist || echo "web/dist missing" && \
+    ls -la web/.svelte-kit || echo ".svelte-kit missing"
 
-# Vollständige Installation mit maximalem Logging
-RUN echo "=== DEBUG: pnpm install startet ===" && \
-    SHARP_IGNORE_GLOBAL_LIBVIPS=true pnpm install --frozen-lockfile --force --loglevel verbose || echo "=== INSTALL FAILED ==="
-
-# Debug 6: Workspace-Status nach install (zeigt, ob Filter Packages finden)
-RUN echo "=== DEBUG: Workspace Packages ===" && \
-    pnpm -r ls || echo "pnpm -r ls failed – Workspace kaputt?"
-
-# Build mit maximalem Logging + Error-Handling
-RUN echo "=== DEBUG: pnpm build startet ===" && \
-    pnpm --filter @immich/sdk --filter immich-web build --loglevel verbose || echo "=== BUILD FAILED – check above logs! ==="
-
-# Debug 7: Sehr detailliert – was hat der Build wirklich produziert?
-RUN echo "=== DEBUG: web/build Inhalt (Ende) ===" && \
-    ls -la web/build || echo "web/build FEHLT ODER LEER!" && \
-    if [ -d "web/build" ]; then \
-      echo "Build-Inhalt (Top-Level):" && ls -la web/build && \
-      echo "assets-Ordner (falls vorhanden):" && ls -la web/build/assets || echo "Kein assets-Ordner!"; \
-    else \
-      echo "KEIN web/build ORDNER – Build hat nichts produziert!"; \
-    fi
-
-# Final Stage: Base-Server + dein gebrandetes Web
+# Final Stage
 FROM base
 
-# Überschreibe originales Web mit deinem Build
-COPY --from=web-build /usr/src/app/web/build /usr/src/app/www
+# Kopiere mit Fallback: Versuche mehrere mögliche Pfade
+COPY --from=web-build /usr/src/app/web/build /usr/src/app/www || true
+COPY --from=web-build /usr/src/app/web/dist /usr/src/app/www || true
+COPY --from=web-build /usr/src/app/web/.svelte-kit/output/client /usr/src/app/www || true
 
-# Debug 8: Finales Image – ist etwas angekommen?
-RUN echo "=== DEBUG: Finales Image – Inhalt von /usr/src/app/www ===" && \
-    ls -la /usr/src/app/www || echo "www-Ordner leer oder fehlt!"
+# Debug im finalen Image
+RUN ls -la /usr/src/app/www || echo "www leer im finalen Image!"
