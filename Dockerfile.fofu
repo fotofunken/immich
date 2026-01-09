@@ -2,7 +2,7 @@
 FROM ghcr.io/immich-app/immich-server:release AS base
 
 # Stage 2: Web-Build mit deinem Fotofunken-Branding
-# Aktuellstes bekanntes Base-Tag (Stand 9. Jan 2026)
+# Aktuellstes bekanntes Base-Tag (Stand 9. Jan 2026 – prüfe ggf. auf https://github.com/immich-app/immich/pkgs/container/base-server-dev)
 FROM ghcr.io/immich-app/base-server-dev:202601061105 AS web-build
 
 WORKDIR /usr/src/app
