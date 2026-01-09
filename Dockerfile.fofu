@@ -2,7 +2,7 @@
 FROM ghcr.io/immich-app/immich-server:release AS base
 
 # Stage 2: Web-Build mit deinem Fotofunken-Branding
-FROM ghcr.io/immich-app/base-server-dev:latest AS web-build   # ← :latest statt altem Datum!
+FROM ghcr.io/immich-app/base-server-dev:latest AS web-build
 
 WORKDIR /usr/src/app
 
