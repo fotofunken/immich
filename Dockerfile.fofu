@@ -1,70 +1,59 @@
-# Stage 1: Offizielles released immich-server als Base (Finales Image)
+# Stage 1: Offizielles released immich-server als Base
 FROM ghcr.io/immich-app/immich-server:release AS base
 
 # Stage 2: Web-Build mit deinem Fotofunken-Branding
-# Aktuellstes bekanntes Base-Tag (Stand 9. Jan 2026 – prüfe ggf. auf https://github.com/immich-app/immich/pkgs/container/base-server-dev)
 FROM ghcr.io/immich-app/base-server-dev:202601061105 AS web-build
 
 WORKDIR /usr/src/app
 
-# Debug 1: Default-Zustand des Base-Images prüfen
+# Debug 1: Base-Image Default
 RUN echo "=== DEBUG: Base-Image Default WORKDIR und Inhalt ===" && \
     pwd && \
     ls -la
 
-# Kopiere Workspace + Dependencies (Caching optimiert)
+# Kopiere Workspace + Dependencies
 COPY pnpm-lock.yaml pnpm-workspace.yaml .pnpmfile.cjs ./
 COPY package.json ./
 COPY web/package.json web/
 
-# Installiere corepack + pnpm
 RUN npm install --global corepack@latest && \
-    corepack enable pnpm
+    corepack enable pnpm && \
+    SHARP_IGNORE_GLOBAL_LIBVIPS=true pnpm install --frozen-lockfile --force --loglevel info || echo "=== INSTALL FAILED ==="
 
-# Vollständige Installation mit maximalem Logging
-RUN echo "=== DEBUG: pnpm install startet ===" && \
-    SHARP_IGNORE_GLOBAL_LIBVIPS=true pnpm install --frozen-lockfile --force --loglevel verbose || echo "=== INSTALL FAILED ==="
-
-# Debug 2: Workspace nach install prüfen (zeigt, ob Packages erkannt werden)
+# Debug 2: Workspace Packages
 RUN echo "=== DEBUG: Workspace Packages ===" && \
-    pnpm -r ls || echo "pnpm -r ls failed – Workspace oder Filter Problem"
+    pnpm -r ls || echo "pnpm -r ls failed"
 
 # Kopiere den Rest (deine UI-Änderungen)
 COPY web/ ./web/
 COPY i18n/ ./i18n/
 COPY open-api/ ./open-api/
 
-# Debug 3: Ist der web-Ordner mit deinen Änderungen da?
+# Debug 3: web-Ordner nach COPY
 RUN echo "=== DEBUG: web-Ordner nach COPY ===" && \
-    ls -la web/ || echo "web/ FEHLT oder leer!" && \
-    ls -la web/src || echo "web/src FEHLT oder leer!"
+    ls -la web/ || echo "web/ FEHLT!" && \
+    ls -la web/src || echo "web/src FEHLT!"
 
-# Build mit robustem Fallback + maximalem Logging
+# Build mit cd web (das hat in deinem Test geklappt)
 RUN echo "=== DEBUG: Build startet ===" && \
-    cd web && pnpm build --loglevel verbose 2>&1 || \
-    pnpm --filter immich-web build --loglevel verbose 2>&1 || \
-    pnpm --filter web build --loglevel verbose 2>&1 || \
-    pnpm --filter "./web" build --loglevel verbose 2>&1 || \
-    pnpm build --loglevel verbose 2>&1 || \
-    echo "=== BUILD FAILED – no matching filter or error above ===" && \
+    cd web && pnpm build --loglevel verbose 2>&1 || echo "=== BUILD FAILED in web/ ===" && \
     cd ..
 
-# Debug 4: Sehr detaillierte Suche nach dem Build-Output
+# Debug 4: Build-Output Suche
 RUN echo "=== DEBUG: Build-Output Suche ===" && \
-    find web -type d \( -name "build" -o -name "dist" -o -name ".svelte-kit" -o -name "output" \) -print || echo "Keine Build-Ordner gefunden" && \
+    find web -type d \( -name "build" -o -name "dist" -o -name ".svelte-kit" -o -name "output" \) -print || echo "Keine Build-Ordner" && \
     echo "web/build:" && ls -la web/build || echo "web/build missing" && \
     echo "web/dist:" && ls -la web/dist || echo "web/dist missing" && \
     echo "web/.svelte-kit:" && ls -la web/.svelte-kit || echo ".svelte-kit missing" && \
     echo "web/.svelte-kit/output/client:" && ls -la web/.svelte-kit/output/client || echo "client missing"
 
-# Final Stage: Base-Server + dein gebrandetes Web
+# Final Stage
 FROM base
 
-# Kopiere mit separaten Zeilen (Build bricht nicht ab, wenn ein Pfad fehlt)
-COPY --from=web-build /usr/src/app/web/build /usr/src/app/www || true
-COPY --from=web-build /usr/src/app/web/dist /usr/src/app/www || true
-COPY --from=web-build /usr/src/app/web/.svelte-kit/output/client /usr/src/app/www || true
+# Kopiere mit separaten Zeilen – ohne || true (da wir den Pfad kennen)
+# Der Haupt-Pfad ist web/build (aus deinen Logs)
+COPY --from=web-build /usr/src/app/web/build /usr/src/app/www
 
-# Debug 5: Finales Ergebnis im Server-Image
+# Debug final
 RUN echo "=== DEBUG: Finales /usr/src/app/www ===" && \
-    ls -la /usr/src/app/www || echo "www-Ordner leer oder fehlt!"
+    ls -la /usr/src/app/www || echo "www-Ordner leer!"
