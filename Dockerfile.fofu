@@ -15,20 +15,30 @@ RUN npm install --global corepack@latest && \
     corepack enable pnpm && \
     SHARP_IGNORE_GLOBAL_LIBVIPS=true pnpm install --frozen-lockfile --force --loglevel info
 
-# Kopiere den Rest
+RUN pnpm -r ls
+
 COPY web/ ./web/
 COPY i18n/ ./i18n/
 COPY open-api/ ./open-api/
 
-# Build: Wechsle in web/ und baue direkt (Filter nicht nötig)
+RUN echo "=== DEBUG: web-Ordner nach COPY ===" && ls -la web/ && ls -la web/src
+
+# Build: Ohne --loglevel (Vite kennt es nicht)
 RUN echo "=== DEBUG: Build startet ===" && \
     cd web && \
-    pnpm build --loglevel verbose 2>&1 || \
+    pnpm build 2>&1 || \
     echo "=== BUILD FAILED in web/ ===" && \
     cd ..
 
-# Debug: Zeige Build-Ordner
-RUN ls -la web/build || echo "web/build fehlt oder leer!"
+# Debug: Build-Output prüfen
+RUN echo "=== DEBUG: Build-Output (web/build) ===" && \
+    ls -la web/build || echo "web/build fehlt oder leer!" && \
+    if [ -d "web/build" ]; then \
+      echo "Build-Inhalt:" && ls -la web/build && \
+      echo "assets-Ordner:" && ls -la web/build/assets || echo "Kein assets!"; \
+    else \
+      echo "KEIN BUILD ORDNER – pnpm build hat nichts produziert!"; \
+    fi
 
 # Final Stage
 FROM base
@@ -37,4 +47,4 @@ FROM base
 COPY --from=web-build /usr/src/app/web/build /usr/src/app/www
 
 # Finaler Debug
-RUN ls -la /usr/src/app/www || echo "www-Ordner leer!"
+RUN ls -la /usr/src/app/www || echo "www-Ordner leer oder fehlt!"
