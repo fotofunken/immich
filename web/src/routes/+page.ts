@@ -14,24 +14,28 @@ export const load = (async ({ fetch }) => {
     await init(fetch);
 
     if (serverConfigManager.value.maintenanceMode) {
-      redirect(302, AppRoute.MAINTENANCE);
+      redirect(307, AppRoute.MAINTENANCE);
     }
 
     const authenticated = await loadUser();
     if (authenticated) {
+<<<<<<< HEAD
       // Custom: Redirect to albums instead of photos - change to true to revert to photos
       const redirectToAlbums = true;
       redirect(302, redirectToAlbums ? AppRoute.ALBUMS : AppRoute.PHOTOS);
+=======
+      redirect(307, AppRoute.PHOTOS);
+>>>>>>> upstream/main
     }
 
     if (serverConfigManager.value.isInitialized) {
       // Redirect to login page if there exists an admin account (i.e. server is initialized)
-      redirect(302, AppRoute.AUTH_LOGIN);
+      redirect(307, AppRoute.AUTH_LOGIN);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (redirectError: any) {
-    if (redirectError?.status === 302) {
+    if (redirectError?.status === 307) {
       throw redirectError;
     }
   }

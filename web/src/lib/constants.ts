@@ -1,8 +1,8 @@
+export const UUID_REGEX = /^[\dA-Fa-f]{8}(?:\b-[\dA-Fa-f]{4}){3}\b-[\dA-Fa-f]{12}$/;
+
 export enum AssetAction {
   ARCHIVE = 'archive',
   UNARCHIVE = 'unarchive',
-  FAVORITE = 'favorite',
-  UNFAVORITE = 'unfavorite',
   TRASH = 'trash',
   DELETE = 'delete',
   RESTORE = 'restore',
@@ -16,11 +16,14 @@ export enum AssetAction {
   SET_VISIBILITY_LOCKED = 'set-visibility-locked',
   SET_VISIBILITY_TIMELINE = 'set-visibility-timeline',
   SET_PERSON_FEATURED_PHOTO = 'set-person-featured-photo',
+  RATING = 'rating',
 }
 
 export enum AppRoute {
   ADMIN_USERS = '/admin/users',
-  ADMIN_LIBRARY_MANAGEMENT = '/admin/library-management',
+  ADMIN_USERS_NEW = '/admin/users/new',
+  ADMIN_LIBRARIES = '/admin/library-management',
+  ADMIN_LIBRARIES_NEW = '/admin/library-management/new',
   ADMIN_SETTINGS = '/admin/system-settings',
   ADMIN_STATS = '/admin/server-status',
   ADMIN_QUEUES = '/admin/queues',
@@ -55,6 +58,7 @@ export enum AppRoute {
   DUPLICATES = '/utilities/duplicates',
   LARGE_FILES = '/utilities/large-files',
   GEOLOCATION = '/utilities/geolocation',
+  WORKFLOWS = '/utilities/workflows',
 
   FOLDERS = '/folders',
   TAGS = '/tags',

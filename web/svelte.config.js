@@ -5,10 +5,17 @@ export default {
   preprocess: vitePreprocess(),
   kit: {
     adapter: adapter({
-      pages: 'build',   // Output-Pfad: web/build
-      assets: 'build',
-      fallback: 'index.html', // Für SPA-Routing (wichtig!)
-      precompress: false
-    })
-  }
+      fallback: 'index.html',
+      precompress: true,
+    }),
+    alias: {
+      $lib: 'src/lib',
+      '$lib/*': 'src/lib/*',
+      $tests: 'src/../tests',
+      '$tests/*': 'src/../tests/*',
+      '@test-data': 'src/test-data',
+      $i18n: '../i18n',
+      'chromecast-caf-sender': './node_modules/@types/chromecast-caf-sender/index.d.ts',
+    },
+  },
 };
