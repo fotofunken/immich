@@ -1,44 +1,47 @@
 # Stage 1: Offizielles released immich-server als Base
 FROM ghcr.io/immich-app/immich-server:release AS base
 
-# Stage 2: Web-Build
+# Stage 2: Web-Build mit deinem Fotofunken-Branding
 FROM ghcr.io/immich-app/base-server-dev:202601061105 AS web-build
 
 WORKDIR /usr/src/app
 
+# Kopiere Workspace + Dependencies
 COPY pnpm-lock.yaml pnpm-workspace.yaml .pnpmfile.cjs ./
 COPY package.json ./
 COPY web/package.json web/
+COPY open-api/typescript-sdk/package.json open-api/typescript-sdk/
 
 RUN npm install --global corepack@latest && \
     corepack enable pnpm && \
-    SHARP_IGNORE_GLOBAL_LIBVIPS=true pnpm install --frozen-lockfile --force
+    SHARP_IGNORE_GLOBAL_LIBVIPS=true pnpm install --frozen-lockfile --force --loglevel info
 
+# SDK vorab bauen (das fehlte!)
+RUN cd open-api/typescript-sdk && \
+    pnpm build && \
+    cd ../..
+
+# Kopiere den Rest
 COPY web/ ./web/
 COPY i18n/ ./i18n/
 COPY open-api/ ./open-api/
 
-# Build: Identisch zu deinem erfolgreichen lokalen Test
+# Build Frontend
 RUN cd web && \
     pnpm build && \
     cd ..
 
-# Debug: Prüfe Output (wichtig!)
-RUN echo "=== DEBUG: Build-Output (web/build) ===" && \
-    ls -la web/build || echo "web/build fehlt oder leer!" && \
-    if [ -d "web/build" ]; then \
-      echo "Build-Inhalt:" && ls -la web/build && \
-      echo "assets-Ordner:" && ls -la web/build/assets || echo "Kein assets!"; \
-    else \
-      echo "KEIN BUILD ORDNER!"; \
-    fi
+# Debug: Build-Output prüfen
+RUN echo "=== DEBUG: SDK Build-Output ===" && \
+    ls -la open-api/typescript-sdk/build || echo "SDK build missing" && \
+    echo "=== DEBUG: Frontend Build-Output ===" && \
+    ls -la web/build || echo "web/build missing"
 
 # Final Stage
 FROM base
 
-# Kopiere den Pfad aus deinem lokalen Test
+# Kopiere Frontend-Build
 COPY --from=web-build /usr/src/app/web/build /usr/src/app/www
 
 # Finaler Debug
-RUN echo "=== DEBUG: Finales /usr/src/app/www ===" && \
-    ls -la /usr/src/app/www || echo "www-Ordner leer!"
+RUN ls -la /usr/src/app/www || echo "www leer!"
