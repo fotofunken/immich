@@ -1,42 +1,40 @@
-# Stage 1: Offizielles released immich-server als Base (Finales Image)
+# Stage 1: Offizielles released immich-server als Base
 FROM ghcr.io/immich-app/immich-server:release AS base
 
 # Stage 2: Web-Build mit deinem Fotofunken-Branding
-# Aktuellstes bekanntes Base-Tag (Stand 9. Jan 2026 – prüfe ggf. auf https://github.com/immich-app/immich/pkgs/container/base-server-dev)
 FROM ghcr.io/immich-app/base-server-dev:202601061105 AS web-build
 
 WORKDIR /usr/src/app
 
-# Kopiere Workspace + Dependencies (Caching optimiert)
+# Kopiere Workspace + Dependencies
 COPY pnpm-lock.yaml pnpm-workspace.yaml .pnpmfile.cjs ./
 COPY package.json ./
 COPY web/package.json web/
 
-# Installiere corepack + pnpm
 RUN npm install --global corepack@latest && \
-    corepack enable pnpm
+    corepack enable pnpm && \
+    SHARP_IGNORE_GLOBAL_LIBVIPS=true pnpm install --frozen-lockfile --force --loglevel info
 
-# Vollständige Installation
-RUN SHARP_IGNORE_GLOBAL_LIBVIPS=true pnpm install --frozen-lockfile --force --loglevel info
-
-# Kopiere den Rest (deine UI-Änderungen)
+# Kopiere den Rest
 COPY web/ ./web/
 COPY i18n/ ./i18n/
 COPY open-api/ ./open-api/
 
-# Build: Explizit in web/ wechseln (aus deinem lokalen Test erfolgreich)
-RUN cd web && \
-    pnpm build && \
+# Build: Wechsle in web/ und baue direkt (Filter nicht nötig)
+RUN echo "=== DEBUG: Build startet ===" && \
+    cd web && \
+    pnpm build --loglevel verbose 2>&1 || \
+    echo "=== BUILD FAILED in web/ ===" && \
     cd ..
 
-# Debug: Build-Output prüfen (wichtig!)
+# Debug: Zeige Build-Ordner
 RUN ls -la web/build || echo "web/build fehlt oder leer!"
 
-# Final Stage: Base-Server + dein gebrandetes Web
+# Final Stage
 FROM base
 
 # Kopiere den korrekten Pfad (aus deinem lokalen Test: web/build)
 COPY --from=web-build /usr/src/app/web/build /usr/src/app/www
 
-# Finaler Debug im Server-Image
-RUN ls -la /usr/src/app/www || echo "www-Ordner leer oder fehlt!"
+# Finaler Debug
+RUN ls -la /usr/src/app/www || echo "www-Ordner leer!"
