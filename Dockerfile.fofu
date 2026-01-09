@@ -2,46 +2,62 @@
 FROM ghcr.io/immich-app/immich-server:release AS base
 
 # Stage 2: Web-Build mit deinem Fotofunken-Branding
-FROM ghcr.io/immich-app/base-server-dev:202512161105 AS web-build
+# Aktuelles Base-Image (202601061105 ist aktuell bekannt – prüfe ggf. https://github.com/immich-app/immich/pkgs/container/base-server-dev)
+FROM ghcr.io/immich-app/base-server-dev:202601061105 AS web-build
 
 WORKDIR /usr/src/app
 
-# Kopiere Workspace zuerst (für Caching)
+# Debug 1: Default-Zustand des Base-Images
+RUN echo "=== DEBUG: Base-Image Default ===" && \
+    pwd && \
+    ls -la
+
+# Kopiere Workspace + Dependencies (Caching)
 COPY pnpm-lock.yaml pnpm-workspace.yaml .pnpmfile.cjs ./
 COPY package.json ./
 COPY web/package.json web/
 
-# Install
 RUN npm install --global corepack@latest && \
     corepack enable pnpm && \
-    SHARP_IGNORE_GLOBAL_LIBVIPS=true pnpm install --frozen-lockfile --force --loglevel info
+    SHARP_IGNORE_GLOBAL_LIBVIPS=true pnpm install --frozen-lockfile --force --loglevel info || echo "=== INSTALL FAILED ==="
 
-# Debug: Welche Packages gibt es?
-RUN pnpm -r ls
+# Debug 2: Workspace nach install
+RUN echo "=== DEBUG: Workspace Packages ===" && \
+    pnpm -r ls || echo "pnpm -r ls failed"
 
-# Kopiere den Rest
+# Kopiere den Rest (deine UI-Änderungen)
 COPY web/ ./web/
 COPY i18n/ ./i18n/
 COPY open-api/ ./open-api/
 
-# Build mit verbose + Fallback-Filter
-RUN pnpm --filter immich-web build --loglevel verbose || \
-    pnpm build --filter "./web" --loglevel verbose || \
-    echo "BUILD FAILED - no matching filter!"
+# Debug 3: Ist web-Ordner da?
+RUN echo "=== DEBUG: web-Ordner nach COPY ===" && \
+    ls -la web/ || echo "web/ FEHLT!" && \
+    ls -la web/src || echo "web/src FEHLT!"
 
-# Debug: Wo ist der Build-Output?
-RUN echo "=== Possible Build-Outputs ===" && \
-    ls -la web/build || echo "web/build missing" && \
-    ls -la web/dist || echo "web/dist missing" && \
-    ls -la web/.svelte-kit || echo ".svelte-kit missing"
+# Build mit robustem Fallback
+RUN echo "=== DEBUG: Build startet ===" && \
+    pnpm --filter immich-web build --loglevel verbose 2>&1 || \
+    pnpm --filter "./web" build --loglevel verbose 2>&1 || \
+    pnpm build --filter immich-web --loglevel verbose 2>&1 || \
+    echo "=== BUILD FAILED – no matching filter or error ==="
+
+# Debug 4: Alle möglichen Build-Output-Pfade prüfen
+RUN echo "=== DEBUG: Build-Output Suche ===" && \
+    find . -type d \( -name "build" -o -name "dist" -o -name ".svelte-kit" -o -name "output" \) -print || echo "Keine Build-Ordner gefunden" && \
+    echo "web/build:" && ls -la web/build || echo "web/build missing" && \
+    echo "web/dist:" && ls -la web/dist || echo "web/dist missing" && \
+    echo "web/.svelte-kit:" && ls -la web/.svelte-kit || echo ".svelte-kit missing" && \
+    echo "web/.svelte-kit/output/client:" && ls -la web/.svelte-kit/output/client || echo "client missing"
 
 # Final Stage
 FROM base
 
-# Kopiere mit Fallback: Versuche mehrere mögliche Pfade
+# Kopiere mit separaten Zeilen + Fallback (Build bricht nicht ab)
 COPY --from=web-build /usr/src/app/web/build /usr/src/app/www || true
 COPY --from=web-build /usr/src/app/web/dist /usr/src/app/www || true
 COPY --from=web-build /usr/src/app/web/.svelte-kit/output/client /usr/src/app/www || true
 
-# Debug im finalen Image
-RUN ls -la /usr/src/app/www || echo "www leer im finalen Image!"
+# Debug 5: Finales Ergebnis
+RUN echo "=== DEBUG: Finales /usr/src/app/www ===" && \
+    ls -la /usr/src/app/www || echo "www-Ordner leer!"
